@@ -16,6 +16,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using Tizen.NUI;
@@ -161,7 +162,67 @@ namespace Tizen.NUI.Scene3D
                 return GetModelRoot();
             }
         }
-
+        
+        /// <summary>
+        /// Sets collider mesh for selected node 
+        /// </summary>
+        /// <param name="modelNode">Node to attach collider mesh to</param>
+        /// <param name="vertexList">List of mesh vertices</param>
+        /// <param name="indexList">List of mesh indices</param>
+        // This will be public opened after ACR done. (Before ACR, need to be hidden as Inhouse API)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void SetColliderMesh(string nodeName, List<Vector3> vertexList, List<int> indexList)
+        {
+            var vertices = new Interop.Model.Vec3[vertexList.Count];
+            var idx = 0;
+            foreach (var vertex in vertexList)
+            {
+                vertices[idx].x = vertex.X;
+                vertices[idx].y = vertex.Y;
+                vertices[idx].z = vertex.Z;
+                ++idx;
+            }
+            
+            Interop.Model.SetColliderMesh(SwigCPtr, nodeName, vertices, vertexList.Count, indexList.ToArray(), indexList.Count);
+            if (NDalicPINVOKE.SWIGPendingException.Pending) throw NDalicPINVOKE.SWIGPendingException.Retrieve();
+        }
+        
+        /// <summary>
+        /// Sets collider mesh for selected node 
+        /// </summary>
+        /// <param name="modelNode">Node to attach collider mesh to</param>
+        /// <param name="vertexList">List of mesh vertices</param>
+        /// <param name="indexList">List of mesh indices</param>
+        // This will be public opened after ACR done. (Before ACR, need to be hidden as Inhouse API)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void SetColliderMesh(ModelNode modelNode, List<Vector3> vertexList, List<int> indexList)
+        {
+            var vertices = new Interop.Model.Vec3[vertexList.Count];
+            var idx = 0;
+            foreach (var vertex in vertexList)
+            {
+                vertices[idx].x = vertex.X;
+                vertices[idx].y = vertex.Y;
+                vertices[idx].z = vertex.Z;
+                ++idx;
+            }
+            
+            Interop.Model.SetColliderMesh(SwigCPtr, modelNode.SwigCPtr, vertices, vertexList.Count, indexList.ToArray(), indexList.Count);
+            if (NDalicPINVOKE.SWIGPendingException.Pending) throw NDalicPINVOKE.SWIGPendingException.Retrieve();
+        }
+        
+        /// <summary>
+        /// Adds modelNode to this Model.
+        /// </summary>
+        /// <param name="modelNode">Root of a ModelNode tree</param>
+        // This will be public opened after ACR done. (Before ACR, need to be hidden as Inhouse API)
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public void RemoveColliderMesh(string nodeName)
+        {
+            //Interop.Model.AddModelNode(SwigCPtr, ModelNode.getCPtr(modelNode));
+            //if (NDalicPINVOKE.SWIGPendingException.Pending) throw NDalicPINVOKE.SWIGPendingException.Retrieve();
+        }
+        
         /// <summary>
         /// Adds modelNode to this Model.
         /// </summary>
@@ -612,6 +673,50 @@ namespace Tizen.NUI.Scene3D
         protected override void ReleaseSwigCPtr(global::System.Runtime.InteropServices.HandleRef swigCPtr)
         {
             Interop.Model.DeleteModel(swigCPtr);
+        }
+        
+        
+        private EventHandler meshHitEventHandler;
+        private MeshHitCallbackType meshHitCallback;
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void MeshHitCallbackType(IntPtr motionData);
+        
+        /// <summary>
+        /// LoadCompleted event.
+        /// It will be invoked only for latest load request.
+        /// </summary>
+        /// <since_tizen> 11 </since_tizen>
+        public event EventHandler MeshHitSignal
+        {
+            add
+            {
+                if (meshHitEventHandler == null)
+                {
+                    meshHitCallback = MeshHitCollision;
+                    Interop.Model.MeshHitSignalConnect(SwigCPtr, meshHitCallback.ToHandleRef(this));
+                    NDalicPINVOKE.ThrowExceptionIfExists();
+                }
+                meshHitEventHandler += value;
+            }
+            remove
+            {
+                meshHitEventHandler -= value;
+                if (meshHitEventHandler == null && meshHitCallback != null)
+                {
+                    Interop.Model.MeshHitSignalDisconnect(SwigCPtr, meshHitCallback.ToHandleRef(this));
+                    NDalicPINVOKE.ThrowExceptionIfExists();
+                    meshHitCallback = null;
+                }
+            }
+        }
+
+        private void MeshHitCollision(IntPtr motionData)
+        {
+            if (meshHitEventHandler != null)
+            {
+                Console.WriteLine("HIIIIT");
+                meshHitEventHandler(this, null);
+            }
         }
     }
 }
